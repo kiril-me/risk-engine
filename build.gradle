@@ -93,7 +93,7 @@ sourceSets {
 }
 
 task riskEngineService(type: CreateStartScripts) {
-    mainClassName = 'com.mercury.app.RiskEngineService'
+    mainClassName = 'com.mercury.app.RiskEngineServer'
     applicationName = 'risk-engine'
     outputDir = new File(project.buildDir, 'tmp')
     classpath = jar.outputs.files + project.configurations.runtime

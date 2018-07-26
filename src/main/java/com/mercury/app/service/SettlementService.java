@@ -32,7 +32,7 @@ public class SettlementService {
 
 	private final static String TOPIC = "risk-engine-topic";
 
-//	private final static String BOOTSTRAP_SERVERS = "localhost:9092";
+	// private final static String BOOTSTRAP_SERVERS = "localhost:9092";
 
 	private static final int WAIT_TIME = 1000;
 
@@ -43,12 +43,12 @@ public class SettlementService {
 	private Consumer<Long, SettlementRequest> consumer;
 
 	private final RiskEngineService riskEngineService;
-	
+
 	private final String servers;
 
 	public SettlementService(RiskEngineService riskEngineService, String servers) {
 		this.riskEngineService = Objects.requireNonNull(riskEngineService);
-		this.servers =  Objects.requireNonNull(servers);
+		this.servers = Objects.requireNonNull(servers);
 	}
 
 	private Consumer<Long, SettlementRequest> createConsumer() {
@@ -81,7 +81,8 @@ public class SettlementService {
 		final Producer<Long, SettlementRequest> producer = createProducer();
 		try {
 
-			final ProducerRecord<Long, SettlementRequest> record = new ProducerRecord<>(TOPIC, request.getOrderId(), request);
+			final ProducerRecord<Long, SettlementRequest> record = new ProducerRecord<>(TOPIC, request.getOrderId(),
+					request);
 
 			producer.send(record).get();
 
@@ -128,6 +129,8 @@ public class SettlementService {
 
 	public void done() {
 		working = false;
-		executor.shutdown();
+		if (executor != null) {
+			executor.shutdown();
+		}
 	}
 }
