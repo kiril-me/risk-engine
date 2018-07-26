@@ -8,9 +8,9 @@ Start zookeeper:
  
 Start kafka:
  docker run -d --name kafka -p 9092:9092 --link zookeeper:zookeeper confluent/kafka
-
-Create topic:
- docker run --name schema-registry -p 8081:8081 --link zookeeper:zookeeer --link kafka:kafka -e SCHEMA_REGISTRY_KAFKASTORE_TOPIC=risk-engine-topic confluent/schema-registry
+ 
+Use KAFKA_ADVERTISED_HOST_NAME if you have issues. 
+    --env KAFKA_ADVERTISED_HOST_NAME=localhost confluent/kafka
 
 Navigate to build/install/risk-engine/bin
 ./risk-engine

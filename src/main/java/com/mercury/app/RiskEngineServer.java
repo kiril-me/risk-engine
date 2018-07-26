@@ -52,6 +52,7 @@ public class RiskEngineServer {
 		final RiskEngineService riskEngineService = new RiskEngineService(balanceRepository, orderRepository);
 
 		settlementConsumer = new SettlementService(riskEngineService, kafkaServer);
+		settlementConsumer.subscribe();
 
 		ServerBuilder sb = new ServerBuilder();
 

@@ -59,6 +59,7 @@ public class RiskEngineService extends RiskEngineServiceGrpc.RiskEngineServiceIm
 		if (orderId == null) {
 			LOG.info("Insufficent balance {}", request);
 			response.setStatus(Status.INSUFFICIENT_BALANCE);
+			response.setOrderId(-1);
 		} else {
 			response.setStatus(Status.SUFFICIENT_BALANCE);
 			response.setOrderId(orderId);
@@ -117,9 +118,9 @@ public class RiskEngineService extends RiskEngineServiceGrpc.RiskEngineServiceIm
 		if (order == null) {
 			LOG.info("Could not find order {}", orderId);
 		} else if (order.getUserId().equals(settlement.getUserId())
-				&& order.getToken().equals(settlement.getSoldToken())) {
-
-		} else {
+				|| order.getToken().equals(settlement.getSoldToken())) {
+			LOG.info("Wrong user or token");
+		} else if(OrderStatus.OPEN.equals(order.getStatus())) {
 			LOG.warn("Could not match order {} with settlement {}", orderId, settlement);
 			BigDecimal soldQuantity = BigDecimal.valueOf(settlement.getSoldQuantity());
 			BigDecimal remain = order.getAmount().subtract(soldQuantity);
@@ -127,6 +128,7 @@ public class RiskEngineService extends RiskEngineServiceGrpc.RiskEngineServiceIm
 			if (remain.compareTo(BigDecimal.ZERO) == -1) {
 				LOG.warn("Settlement is bigger whan order");
 				// should we process this settlement?
+				return;
 			}
 
 			final Balance soldBalance = balanceRepository.getBalanceByUserIdToken(settlement.getUserId(),
