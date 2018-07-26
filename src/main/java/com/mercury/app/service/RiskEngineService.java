@@ -117,8 +117,8 @@ public class RiskEngineService extends RiskEngineServiceGrpc.RiskEngineServiceIm
 		final Order order = orderRepository.fetchOneById(orderId);
 		if (order == null) {
 			LOG.info("Could not find order {}", orderId);
-		} else if (order.getUserId().equals(settlement.getUserId())
-				|| order.getToken().equals(settlement.getSoldToken())) {
+		} else if (!order.getUserId().equals(settlement.getUserId())
+				|| !order.getToken().equals(settlement.getSoldToken())) {
 			LOG.info("Wrong user or token");
 		} else if(OrderStatus.OPEN.equals(order.getStatus())) {
 			LOG.warn("Could not match order {} with settlement {}", orderId, settlement);
