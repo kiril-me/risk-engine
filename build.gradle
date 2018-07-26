@@ -1,0 +1,161 @@
+buildscript {
+    repositories {
+        jcenter()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.1'
+        classpath "com.h2database:h2:1.4.197"
+    }
+}
+
+plugins {
+    id "com.google.protobuf" version "0.8.6"
+    id 'java'
+    id 'application'
+    id 'eclipse'
+    id 'nu.studer.jooq' version '3.0.1'
+    id "org.flywaydb.flyway" version "5.1.4"
+}
+
+def grpcVersion = '1.8.0'
+def nettyTcNativeVersion = '2.0.7.Final'
+    
+mainClassName = 'App'
+startScripts.enabled = false
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+dependencies {
+/*
+    compile 'com.google.guava:guava:23.0'
+    compile "com.google.api.grpc:proto-google-common-protos:0.1.9"
+    compile "io.grpc:grpc-netty:${grpcVersion}"
+    compile "io.grpc:grpc-protobuf:${grpcVersion}"
+    compile "io.grpc:grpc-stub:${grpcVersion}"
+    compile "io.netty:netty-tcnative-boringssl-static:${nettyTcNativeVersion}"
+    compile "org.bouncycastle:bcmail-jdk15:1.46"
+    compile "org.apache.kafka:kafka_2.12:1.1.0"
+ */
+    
+    ['armeria',
+     'armeria-grpc',
+     'armeria-jetty',
+     'armeria-kafka',
+     'armeria-logback'].each {
+        compile "com.linecorp.armeria:${it}:0.67.1"
+    }
+    
+    compile "org.jooq:jooq:3.11.2"
+    runtime "com.h2database:h2:1.4.197"
+    jooqRuntime "com.h2database:h2:1.4.197"
+    
+    runtime "ch.qos.logback:logback-classic:1.2.3"
+    // runtime "org.slf4j:slf4j-simple:1.7.25"
+    runtime "org.slf4j:log4j-over-slf4j:1.7.25"
+     
+
+    testCompile "io.grpc:grpc-testing:${grpcVersion}"
+    testCompile "junit:junit:4.12"
+    testCompile "org.mockito:mockito-core:1.9.5"
+}
+
+repositories {
+    jcenter()
+    mavenCentral()
+}
+
+
+protobuf {
+    protoc {
+        artifact = 'com.google.protobuf:protoc:3.4.0'
+    }
+    plugins {
+        grpc {
+            artifact = "io.grpc:protoc-gen-grpc-java:${grpcVersion}"
+        }
+    }
+    generateProtoTasks {
+        all()*.plugins {
+            grpc {}
+        }
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs 'build/generated/source/proto/main/grpc'
+            srcDirs 'build/generated/source/proto/main/java'
+            srcDirs 'build/generated/source/jooq/main/java'
+        }
+    }
+}
+
+task riskEngineService(type: CreateStartScripts) {
+    mainClassName = 'com.mercury.app.RiskEngineService'
+    applicationName = 'risk-engine'
+    outputDir = new File(project.buildDir, 'tmp')
+    classpath = jar.outputs.files + project.configurations.runtime
+}
+
+applicationDistribution.into('bin') {
+    from(riskEngineService)
+    fileMode = 0755
+}
+
+jooq {
+  riskEngine(sourceSets.main) {
+    jdbc {
+      driver = 'org.h2.Driver'
+      url = 'jdbc:h2:~/risk-engine;AUTO_SERVER=TRUE'
+      user = 'sa'
+      password = ''
+    }
+    generator {
+      name = 'org.jooq.codegen.DefaultGenerator'
+      
+      database {
+        name = 'org.jooq.meta.h2.H2Database'
+        includes = '.*'
+        excludes = 'Flyway.*'
+      }
+      generate {
+        relations = true
+        deprecated = false
+        records = true
+        immutablePojos = true
+        fluentSetters = true
+        daos = true
+      }
+      target {
+        packageName = 'com.mercury.app.db'
+        directory = 'build/generated/source/jooq/main/java'
+      }
+    }
+  }
+}
+
+tasks.generateRiskEngineJooqSchemaSource.with {
+    def out = new ByteArrayOutputStream()
+    javaExecSpec = { JavaExecSpec s ->
+        s.standardOutput = out
+        s.errorOutput = out
+        s.ignoreExitValue = true
+        s.jvmArgs '-Xmx512M'
+    }
+    execResultHandler = { ExecResult r ->
+        if (r.exitValue != 0) {
+            throw new RuntimeException('jOOQ source code generation failed:\n\n' + out.toString())
+        }
+    }
+}
+flyway {
+   url = 'jdbc:h2:~/risk-engine;AUTO_SERVER=TRUE'
+   user = 'sa'
+   password = ''
+   locations = ["filesystem:$project.projectDir/src/main/resources/db/migration"]
+}
+
+generateRiskEngineJooqSchemaSource.dependsOn flywayMigrate
+test.dependsOn flywayClean

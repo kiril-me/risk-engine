@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package trade;
+
+option java_package = "com.mercury.proto";
+option java_outer_classname = "RiskEngineProto";
+option java_multiple_files = true;
+
+service RiskEngineService {
+  rpc WithdrawBalance(WithdrawBalanceRequest) returns (WithdrawBalanceResponce) {}
+}
+
+message WithdrawBalanceRequest {
+  int64  user_id = 1;
+  string token = 2;
+  double requested_amount = 3;
+}
+
+message WithdrawBalanceResponce {
+  enum Status {
+    INSUFFICIENT_BALANCE = 0;
+    SUFFICIENT_BALANCE = 1;
+  }
+  Status status = 1;
+  int64 order_id = 2;
+}
+
+
+service TestRiskEngineService {
+  rpc SendSettlement(SettlementRequest) returns (SettlementResponce) {}
+  
+  rpc UserBalance(UserRequest) returns (UserBalanceResponce) {}
+}
+
+message SettlementRequest {
+  int64 user_id = 1;
+  int64 order_id = 2;
+  string bought_token = 3;
+  double bought_quantity = 4;
+  string sold_token = 5;
+  double sold_quantity = 6;
+}
+
+message SettlementResponce {
+  int64 user_id = 1;
+  int64 order_id = 2;
+  string bought_token = 3;
+  double bought_balance = 4;
+  string sold_token = 5;
+  double sold_balance = 6;
+}
+
+message UserRequest {
+  int64 user_id = 1;
+}
+
+message Balance {
+  string token = 1;
+  double available = 2;
+  double withdraw = 3;
+}
+
+message UserBalanceResponce {
+  int64 user_id = 1;
+  repeated Balance balances = 2;
+}
